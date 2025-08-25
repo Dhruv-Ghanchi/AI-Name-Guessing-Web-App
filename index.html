@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🤖 AI Name Picker – Mechanics Edition</title>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --card: #0f1220;
+      --neon1: #6a5cff; /* purple */
+      --neon2: #18ffff; /* cyan */
+      --text: #e6f1ff;
+      --muted: #9fb0c5;
+      --good: #24d68a;
+      --warn: #ffb02e;
+      --danger: #ff4d6d;
+    }
+    html, body { height: 100%; }
+    body {
+      margin: 0; background: radial-gradient(1200px 800px at 20% 20%, rgba(104,0,255,0.15), transparent 50%),
+                                 radial-gradient(1000px 700px at 80% 80%, rgba(0,255,255,0.12), transparent 50%), var(--bg);
+      color: var(--text); font-family: ui-sans-serif, system-ui, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      overflow: hidden; /* for clean fullscreen */
+    }
+    /* Neon glow helpers */
+    .glow {
+      text-shadow: 0 0 6px rgba(104,0,255,0.9), 0 0 14px rgba(0,255,255,0.7);
+    }
+    .neon-border {
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06) inset, 0 0 18px rgba(104,0,255,0.35), 0 0 28px rgba(0,255,255,0.18);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(16,20,36,0.9), rgba(10,12,16,0.8));
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(6px);
+    }
+
+    /* Layout */
+    .wrap { position: relative; height: 100%; display: grid; grid-template-rows: auto 1fr auto; }
+    header {
+      display:flex; align-items:center; gap:16px; padding:14px 18px; position: relative; z-index: 2;
+    }
+    header .title {
+      font-weight: 800; letter-spacing: 0.7px; font-size: clamp(18px, 2.2vw, 26px);
+      background: linear-gradient(90deg, var(--neon2), var(--neon1));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .pill {
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 6px 10px; color: var(--muted); font-size: 12px;
+      background: rgba(255,255,255,0.03);
+    }
+    .controls {
+      display:flex; gap:10px; flex-wrap: wrap; align-items: center; margin-left: auto;
+    }
+    .btn { cursor: pointer; border-radius: 12px; padding: 10px 14px; border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, rgba(48,56,92,0.35), rgba(20,24,40,0.6)); color: var(--text);
+      transition: transform .06s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 0 14px rgba(0,255,255,0.2); }
+    .btn.primary { background: linear-gradient(180deg, rgba(0,255,255,0.18), rgba(104,0,255,0.18)); border-color: rgba(0,255,255,0.25); }
+    .btn.warn { border-color: rgba(255,176,46,0.35); }
+
+    /* Main panels */
+    .main {
+      display:grid; grid-template-columns: 370px 1fr; gap:16px; padding: 0 18px 18px; position: relative; z-index: 1;
+      height: calc(100% - 92px);
+    }
+    .left, .center { padding: 14px; }
+    .left { max-height: 100%; overflow: auto; }
+
+    .section { padding: 14px; margin-bottom: 14px; }
+    .section h3 { margin: 0 0 10px; font-size: 14px; color: var(--muted); letter-spacing: .4px; }
+
+    .textarea { width: 100%; height: 120px; resize: vertical; color: var(--text); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 10px; }
+
+    .stat { display:flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+
+    .toggle { display:flex; align-items:center; gap:8px; font-size: 13px; color: var(--muted); }
+    .toggle input { accent-color: var(--neon2); }
+
+    /* Display area */
+    .stage { position: relative; height: 100%; display: grid; place-items: center; }
+    .display {
+      text-align: center; padding: 24px 28px; min-width: min(92vw, 1000px); min-height: 220px;
+      display:grid; place-items:center; gap: 10px;
+    }
+    .label { font-size: clamp(14px, 1.4vw, 16px); color: var(--muted); letter-spacing: 3px; text-transform: uppercase; }
+    .name {
+      font-weight: 900; font-size: clamp(30px, 6vw, 72px); letter-spacing: 1.2px; line-height: 1.15;
+      background: linear-gradient(90deg, #fff, #b5f6ff 40%, #d5c7ff 70%, #fff);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 18px rgba(0,255,255,0.35), 0 0 28px rgba(104,0,255,0.25);
+      filter: drop-shadow(0 2px 12px rgba(0,0,0,0.5));
+    }
+    .hint { font-size: 12px; color: var(--muted); }
+
+    .row { display:flex; gap:10px; flex-wrap: wrap; }
+
+    footer { padding: 10px 18px; font-size: 12px; color: var(--muted); display:flex; justify-content: space-between; align-items:center; z-index:2; }
+
+    /* Animations */
+    @keyframes scanLine { 0% { transform: translateY(-140%);} 100% { transform: translateY(140%);} }
+    .scanner {
+      position: absolute; inset: 16px; border-radius: 18px; pointer-events: none; overflow: hidden;
+    }
+    .scanner::before {
+      content: ""; position: absolute; left:0; right:0; height: 120px; top: -120px; 
+      background: linear-gradient(180deg, rgba(0,255,255,0), rgba(0,255,255,0.18), rgba(0,255,255,0));
+      filter: blur(6px);
+      animation: scanLine 3.6s linear infinite;
+    }
+
+    .pulse { animation: pulse 1.6s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: .85;} 50% { opacity: 1; } }
+
+    .reveal { animation: reveal 700ms cubic-bezier(.3,1.6,.2,1); }
+    @keyframes reveal { 0% { transform: scale(.88) rotate(-1deg); filter: blur(6px); opacity: .0} 100% { transform: scale(1) rotate(0); filter: blur(0); opacity:1 } }
+
+    .shake { animation: shake 500ms cubic-bezier(.36,.07,.19,.97); }
+    @keyframes shake { 10%, 90% { transform: translateX(-1px);} 20%, 80% { transform: translateX(2px);} 30%, 50%, 70% { transform: translateX(-4px);} 40%, 60% { transform: translateX(4px);} }
+
+    /* Particles canvas sits behind content */
+    #fx {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(60vw 60vh at 50% 50%, rgba(255,255,255,0.02), transparent 60%);
+    }
+
+    /* Small helper badges */
+    .badge { font-size: 11px; padding: 4px 8px; border-radius: 999px; background: rgba(0,255,255,0.08); border: 1px solid rgba(0,255,255,0.25); color: #c8ffff; }
+  </style>
+</head>
+<body>
+  <canvas id="fx"></canvas>
+
+  <div class="wrap">
+    <header>
+      <div class="title">AI Player Selector</div>
+      <span class="pill">Offline • Single File</span>
+      <div class="controls">
+        <button class="btn" id="btnFullscreen" title="Toggle Fullscreen">⛶ Fullscreen</button>
+        <button class="btn warn" id="btnClear">🧹 Clear</button>
+        <span class="pill" id="count">0 names</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="left neon-border">
+        <div class="section">
+          <h3>1) Upload CSV (first column = names)</h3>
+          <input type="file" id="file" accept=".csv" />
+          <div class="stat"><span>Tip:</span><span>Export your Excel as CSV (UTF‑8).</span></div>
+        </div>
+
+        <div class="section">
+          <h3>2) Or paste names (one per line)</h3>
+          <textarea id="ta" class="textarea" placeholder="Aarav Patel\nSneha Joshi\n…"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" id="btnAdd">➕ Add Names</button>
+            <button class="btn" id="btnSample">📥 Load Sample</button>
+          </div>
+          <div class="stat"><span>Duplicates</span><span>Auto‑removed • Empty lines ignored</span></div>
+        </div>
+
+        <div class="section">
+          <h3>3) Options</h3>
+          <label class="toggle"><input type="checkbox" id="optRemove" checked /> Remove selected name from pool</label>
+          <label class="toggle"><input type="checkbox" id="optSpeak" checked /> Announce with AI voice</label>
+          <label class="toggle"><input type="checkbox" id="optShuffle" /> Shuffle display before reveal</label>
+          <div class="stat"><span>Voices</span><span id="voiceInfo" class="badge">Auto</span></div>
+        </div>
+
+        <div class="section">
+          <h3>Shortcuts</h3>
+          <div class="row">
+            <button class="btn" id="btnPick">🎲 Pick Now</button>
+            <button class="btn" id="btnStop">⏹ Stop</button>
+          </div>
+          <div class="stat"><span>Space</span><span>Start / Stop</span></div>
+        </div>
+      </aside>
+
+      <section class="center">
+        <div class="stage">
+          <div class="display neon-border" id="display">
+            <div class="scanner"></div>
+            <div class="label glow">AI SCANNING…</div>
+            <div id="name" class="name pulse">Awaiting names</div>
+            <div class="hint">Upload CSV or paste names, then press <span class="badge">Pick Now</span></div>
+          </div>
+        </div>
+        <div class="row" style="justify-content:center; gap:14px; margin-top:10px">
+          <button class="btn primary" style="font-size:18px; padding:14px 20px" id="btnBigPick">🚀 Start AI Selection</button>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>Made for your <strong>Mechanics</strong> session · Neon UI • TTS • CSV • Offline</div>
+      <div id="status">Ready</div>
+    </footer>
+  </div>
+
+  <script>
+    // ===== Particle Background =====
+    (function particles(){
+      const c = document.getElementById('fx');
+      const ctx = c.getContext('2d');
+      let W, H, dots=[];
+      function size(){ W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+      window.addEventListener('resize', size); size();
+      for(let i=0;i<110;i++){
+        dots.push({ x: Math.random()*W, y: Math.random()*H, r: Math.random()*2+0.5, vx:(Math.random()-.5)*0.3, vy:(Math.random()-.5)*0.3 });
+      }
+      function draw(){
+        ctx.clearRect(0,0,W,H);
+        for(const d of dots){
+          d.x+=d.vx; d.y+=d.vy;
+          if(d.x<0||d.x>W) d.vx*=-1; if(d.y<0||d.y>H) d.vy*=-1;
+          ctx.beginPath(); ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+          const g=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r*4);
+          g.addColorStop(0,'rgba(24,255,255,0.9)'); g.addColorStop(1,'rgba(24,255,255,0)');
+          ctx.fillStyle=g; ctx.fill();
+        }
+        requestAnimationFrame(draw);
+      }
+      draw();
+    })();
+
+    // ===== Core Logic =====
+    const nameEl = document.getElementById('name');
+    const statusEl = document.getElementById('status');
+    const countEl = document.getElementById('count');
+    const display = document.getElementById('display');
+    const ta = document.getElementById('ta');
+    const voiceInfo = document.getElementById('voiceInfo');
+
+    let pool = new Set();
+    let running = false; let timer = null; let lastPick = null; let voices = [];
+
+    function updateCount(){countEl.textContent = pool.size + (pool.size===1? ' name':' names');}
+    function setStatus(msg){ statusEl.textContent = msg; }
+
+    function addNames(list){
+      const before = pool.size;
+      for(const raw of list){
+        if(!raw) continue;
+        const n = raw.replace(/\s+/g,' ').trim();
+        if(n) pool.add(n);
+      }
+      const added = pool.size - before;
+      updateCount();
+      setStatus(added>0 ? `Added ${added} unique name(s).` : 'No new names added.');
+      if(pool.size>0 && nameEl.textContent==='Awaiting names') nameEl.textContent='Ready';
+    }
+
+    // Parse CSV simple: first column per line
+    document.getElementById('file').addEventListener('change', (e)=>{
+      const f = e.target.files[0]; if(!f){return}
+      if(!/\.csv$/i.test(f.name)){ alert('Please export Excel as CSV and upload that .csv file.'); return; }
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const lines = reader.result.split(/\r?\n/);
+        const out=[];
+        for(const line of lines){
+          const first = line.split(',')[0];
+          if(first) out.push(first);
+        }
+        addNames(out);
+      };
+      reader.readAsText(f);
+    });
+
+    // Paste area add
+    document.getElementById('btnAdd').addEventListener('click', ()=>{
+      const lines = ta.value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+      addNames(lines);
+    });
+
+    document.getElementById('btnSample').addEventListener('click', ()=>{
+      ta.value = `Aarav Patel\nSneha Joshi\nRahul Sharma\nIsha Desai\nNikhil Verma\nPriya Shah\nAman Gupta\nMira Nair\nDhruv Ghanchi\nRiya Mehta`;
+      setStatus('Sample names loaded into the box. Click ➕ Add Names.');
+    });
+
+    document.getElementById('btnClear').addEventListener('click', ()=>{
+      if(confirm('Clear all loaded names?')){ pool = new Set(); updateCount(); nameEl.textContent='Awaiting names'; setStatus('Cleared.'); }
+    });
+
+    // Fullscreen
+    document.getElementById('btnFullscreen').addEventListener('click', ()=>{
+      if(!document.fullscreenElement){ document.documentElement.requestFullscreen(); } else { document.exitFullscreen(); }
+    });
+
+    // Voices
+    function loadVoices(){ voices = window.speechSynthesis.getVoices();
+      const prefer = voices.find(v=>/India|en-IN|English \(India\)/i.test(v.name+v.lang)) || voices.find(v=>/English/i.test(v.lang)) || voices[0];
+      voiceInfo.textContent = prefer ? (prefer.name || prefer.lang || 'Auto') : 'Unavailable';
+      return prefer;
+    }
+    window.speechSynthesis.onvoiceschanged = loadVoices; loadVoices();
+
+    function speak(text){ if(!document.getElementById('optSpeak').checked) return;
+      const v = loadVoices(); if(!v) return;
+      const u = new SpeechSynthesisUtterance(text); u.voice = v; u.rate = 0.98; u.pitch = 1.0; u.volume = 1;
+      window.speechSynthesis.cancel(); window.speechSynthesis.speak(u);
+    }
+
+    // Random helper
+    function pickRandom(){ const arr=[...pool]; if(arr.length===0) return null; return arr[Math.floor(Math.random()*arr.length)]; }
+
+    // Animated selection with easing slowdown
+    function startPick(){
+      if(pool.size===0){ setStatus('Add some names first.'); nameEl.classList.add('shake'); setTimeout(()=>nameEl.classList.remove('shake'), 520); return; }
+      if(running){ return; }
+      running = true; setStatus('AI scanning…'); display.classList.remove('reveal');
+
+      const optShuffle = document.getElementById('optShuffle').checked;
+      let t = 0; // total elapsed steps
+      let interval = 38; // start fast
+      let duration = 4800 + Math.random()*1800; // 4.8–6.6s
+      let start = performance.now();
+
+      nameEl.classList.add('pulse');
+
+      function step(now){
+        const p = Math.min(1, (now-start)/duration);
+        // ease-out curve to slow down (cubic)
+        interval = 40 + Math.pow(p, 3) * 840; // from ~40ms to ~880ms
+
+        if(!timer || now - timer >= interval){
+          timer = now;
+          // Show rolling name or shuffled letters for effect
+          const candidate = pickRandom();
+          if(candidate){
+            if(optShuffle){
+              // briefly show scrambled text
+              const s = candidate.split('');
+              for(let i=0;i<s.length;i++) if(Math.random()<0.28) s[i] = String.fromCharCode(0x41 + Math.floor(Math.random()*26));
+              nameEl.textContent = s.join('');
+            } else {
+              nameEl.textContent = candidate;
+            }
+          }
+        }
+        if(p<1 && running){ requestAnimationFrame(step); }
+        else { finishPick(); }
+      }
+      requestAnimationFrame(step);
+    }
+
+    function finishPick(){
+      running = false; nameEl.classList.remove('pulse');
+      const chosen = pickRandom(); if(!chosen){ setStatus('No names available.'); return; }
+      lastPick = chosen; nameEl.textContent = chosen; display.classList.add('reveal'); nameEl.classList.add('glow');
+      speak(`The chosen student is ${chosen}`);
+      setStatus(`Selected: ${chosen}`);
+      if(document.getElementById('optRemove').checked){ pool.delete(chosen); updateCount(); }
+    }
+
+    function stopPick(){ running = false; }
+
+    document.getElementById('btnPick').addEventListener('click', startPick);
+    document.getElementById('btnBigPick').addEventListener('click', startPick);
+    document.getElementById('btnStop').addEventListener('click', stopPick);
+    window.addEventListener('keydown', (e)=>{ if(e.code==='Space'){ e.preventDefault(); running ? stopPick() : startPick(); }});
+
+    // Initial
+    updateCount();
+  </script>
+</body>
+</html>
