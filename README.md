@@ -1,51 +1,42 @@
-# AI Name Guessing Web App
+# 🤖 AI Name Guessing Web App
 
-A simple web-based name guessing game that predicts a name based on user-selected inputs and logical conditions.
-
----
-
-## Overview
-
-This project is a frontend web application that interacts with the user through a series of inputs and attempts to guess a name using predefined logic.  
-The goal of this project is to practice **user interaction handling**, **basic decision logic**, and **clean UI flow**.
+A web-based name guessing game that predicts a name based on user inputs and logical conditions.
 
 ---
 
-## Features
+## 📖 Overview
 
-- Interactive user input
-- Logic-based name prediction
-- Simple and clean UI
-- Lightweight and fast execution
+This project is an interactive web application where users answer a few questions and the system attempts to guess a name using predefined logic.  
+It was built to practice **logic building**, **user interaction**, and **frontend fundamentals**.
 
 ---
 
-## Tech Stack
+## ✨ Features
 
-- HTML
-- CSS
-- JavaScript
-
----
-
-## How to Use
-
-1. Open the application in a browser  
-2. Follow the on-screen instructions  
-3. Provide inputs as prompted  
-4. View the guessed result
+- Interactive user inputs  
+- Logic-based name prediction  
+- Simple and clean UI  
+- Fast execution without dependencies  
 
 ---
 
-## Learning Outcome
+## 🛠 Tech Stack
 
-- DOM manipulation
-- Conditional logic
-- User interaction handling
+- HTML  
+- CSS  
+- JavaScript  
 
 ---
 
-## Author
+## 🎯 Learning Outcome
+
+- DOM manipulation  
+- Conditional logic  
+- Handling user interactions  
+
+---
+
+## 👤 Author
 
 Dhruv Ghanchi  
 GitHub: https://github.com/Dhruv-Ghanchi
