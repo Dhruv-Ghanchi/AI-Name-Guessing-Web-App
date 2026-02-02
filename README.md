@@ -38,5 +38,6 @@ It was built to practice **logic building**, **user interaction**, and **fronten
 
 ## 👤 Author
 
-Dhruv Ghanchi  
-GitHub: https://github.com/Dhruv-Ghanchi
+Dhruv Chandrakant Ghanchi  
+GitHub: https://github.com/Dhruv-Ghanchi  
+LinkedIn: https://www.linkedin.com/in/dhruv-ghanchi-9b0180371/
